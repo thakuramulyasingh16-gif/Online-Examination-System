@@ -5,6 +5,11 @@ const { Sequelize } = require('sequelize');
 // Local development: classic MySQL settings from backend/.env.
 const usePostgres = !!process.env.DATABASE_URL;
 
+// TiDB Cloud (and most hosted MySQL) require TLS: set DB_SSL=true.
+const mysqlSsl = process.env.DB_SSL === 'true'
+  ? { minVersion: 'TLSv1.2', rejectUnauthorized: true }
+  : undefined;
+
 let sequelize;
 
 if (usePostgres) {
@@ -32,6 +37,7 @@ if (usePostgres) {
       port: process.env.DB_PORT || 3306,
       dialect: 'mysql',
       logging: false,
+      dialectOptions: mysqlSsl ? { ssl: mysqlSsl } : {},
     }
   );
 }
@@ -47,6 +53,7 @@ const ensureDatabaseExists = async () => {
       port: process.env.DB_PORT || 3306,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
+      ssl: mysqlSsl,
     });
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\`;`);
     await connection.end();
