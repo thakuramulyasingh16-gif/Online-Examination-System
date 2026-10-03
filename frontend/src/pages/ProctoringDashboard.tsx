@@ -60,7 +60,7 @@ const ProctoringDashboard = () => {
   }, [selectedStudent]);
 
   useEffect(() => {
-    socketRef.current = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000');
+    socketRef.current = io(import.meta.env.VITE_API_BASE_URL || window.location.origin);
     socketRef.current.emit('join-room', 'admin-monitoring');
 
     socketRef.current.on('active_students', handleUpdateStudentList);

@@ -44,7 +44,7 @@ const Navbar = () => {
               
               <div className="w-10 h-10 rounded-full border-2 border-primary-orange overflow-hidden shadow-sm">
                 {user.profileImage ? (
-                  <img src={`${import.meta.env.VITE_API_BASE_URL}${user.profileImage}`} alt={user.name} className="w-full h-full object-cover" />
+                  <img src={`${import.meta.env.VITE_API_BASE_URL ?? ''}${user.profileImage}`} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-orange-100 flex items-center justify-center text-primary-orange font-bold">
                     {user.name.charAt(0)}

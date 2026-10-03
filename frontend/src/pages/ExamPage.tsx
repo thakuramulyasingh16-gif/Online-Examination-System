@@ -164,7 +164,7 @@ const ExamPage = () => {
 
   useEffect(() => {
     // Initialize Socket
-    socketRef.current = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000');
+    socketRef.current = io(import.meta.env.VITE_API_BASE_URL || window.location.origin);
     
     socketRef.current.on('receive_warning', (data: any) => {
       setWarning(data);

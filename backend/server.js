@@ -2,6 +2,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const { sequelize, ensureDatabaseExists } = require('./config/db');
 const User = require('./models/User');
@@ -144,6 +145,19 @@ app.use('/api/exams', require('./routes/examRoutes'));
 app.use('/api/questions', require('./routes/questionRoutes'));
 app.use('/api/results', require('./routes/resultRoutes'));
 
+// Serve the built React frontend (production). Falls back to index.html for
+// client-side routes so refreshing /admin, /exam/1 etc. keeps working.
+const frontendDist = path.join(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/socket.io')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
 const PORT = process.env.PORT || 5000;
 
 const seedAdmin = async () => {
@@ -170,6 +184,7 @@ const startServer = async () => {
   } catch (err) {
     console.error('Server startup error:');
     console.error(err);
+    process.exit(1);
   }
 };
 

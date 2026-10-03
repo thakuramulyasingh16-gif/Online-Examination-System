@@ -1,28 +1,50 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
-const mysql = require('mysql2/promise');
 const { Sequelize } = require('sequelize');
 
-console.log('--- DB Config DEBUG ---');
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_USER:', process.env.DB_USER);
-console.log('DB_PASSWORD Loaded:', !!process.env.DB_PASSWORD);
-console.log('-----------------------');
+// Production (Render): a single DATABASE_URL pointing at Postgres.
+// Local development: classic MySQL settings from backend/.env.
+const usePostgres = !!process.env.DATABASE_URL;
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    dialect: 'mysql',
+let sequelize;
+
+if (usePostgres) {
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
     logging: false,
-  }
-);
+    dialectOptions: {
+      ssl: { require: true, rejectUnauthorized: false },
+    },
+  });
+  console.log('DB: using Postgres via DATABASE_URL');
+} else {
+  console.log('--- DB Config DEBUG (MySQL) ---');
+  console.log('DB_HOST:', process.env.DB_HOST);
+  console.log('DB_USER:', process.env.DB_USER);
+  console.log('DB_PASSWORD Loaded:', !!process.env.DB_PASSWORD);
+  console.log('-------------------------------');
+
+  sequelize = new Sequelize(
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASSWORD,
+    {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT || 3306,
+      dialect: 'mysql',
+      logging: false,
+    }
+  );
+}
 
 const ensureDatabaseExists = async () => {
+  // On Postgres (Render) the database is created by the platform.
+  if (usePostgres) return;
+
+  const mysql = require('mysql2/promise');
   try {
     const connection = await mysql.createConnection({
       host: process.env.DB_HOST,
+      port: process.env.DB_PORT || 3306,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
     });
