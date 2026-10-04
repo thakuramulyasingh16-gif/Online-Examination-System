@@ -177,7 +177,14 @@ const seedAdmin = async () => {
 const startServer = async () => {
   try {
     await ensureDatabaseExists();
-    await sequelize.sync({ alter: true });
+    // `alter: true` re-issues ALTER TABLE on every start, which TiDB rejects for
+    // UNIQUE columns. For hosted databases (DB_SSL / DATABASE_URL) only create
+    // missing tables; set DB_SYNC_ALTER=true to force alter.
+    const hosted = process.env.DB_SSL === 'true' || !!process.env.DATABASE_URL;
+    const alter = process.env.DB_SYNC_ALTER
+      ? process.env.DB_SYNC_ALTER === 'true'
+      : !hosted;
+    await sequelize.sync({ alter });
     console.log('Database connected and synced successfully');
     await seedAdmin();
     http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
