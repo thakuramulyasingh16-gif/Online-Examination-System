@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen, Award, Clock, ArrowRight } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -23,7 +24,7 @@ const StudentDashboard = () => {
         <div className="flex items-center gap-6">
           <div className="w-24 h-24 rounded-2xl bg-white/20 backdrop-blur-md overflow-hidden border-2 border-white/50 shadow-lg">
             {user?.profileImage ? (
-              <img src={`${import.meta.env.VITE_API_BASE_URL ?? ''}${user.profileImage}`} alt={user.name} className="w-full h-full object-cover" />
+              <img src={`${API_BASE_URL}${user.profileImage}`} alt={user.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-3xl font-bold">
                 {user?.name.charAt(0)}

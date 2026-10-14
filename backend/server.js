@@ -139,6 +139,7 @@ Exam.hasMany(ActivityLog, { foreignKey: 'examId', onDelete: 'CASCADE' });
 ActivityLog.belongsTo(Exam, { foreignKey: 'examId' });
 
 // Routes
+app.use('/api/health', require('./routes/healthRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/students', require('./routes/studentRoutes'));
 app.use('/api/exams', require('./routes/examRoutes'));

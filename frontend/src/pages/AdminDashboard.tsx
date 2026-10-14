@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 import { Users, BookOpen, BarChart2, Plus, Trash2, Edit, Camera, Settings, Lock, Monitor } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -93,7 +94,7 @@ const AdminDashboard = () => {
     fetchExams();
 
     // Initialize Socket for Monitoring
-    socketRef.current = io(import.meta.env.VITE_API_BASE_URL || window.location.origin);
+    socketRef.current = io(API_BASE_URL);
     socketRef.current.emit('join-room', 'admin-monitoring');
 
     socketRef.current.on('admin-receive-frame', (data: any) => {
@@ -254,7 +255,7 @@ const AdminDashboard = () => {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden border border-gray-300">
                           {student.profileImage ? (
-                            <img src={`${import.meta.env.VITE_API_BASE_URL ?? ''}${student.profileImage}`} alt={student.name} className="w-full h-full object-cover" />
+                            <img src={`${API_BASE_URL}${student.profileImage}`} alt={student.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold">
                               {student.name.charAt(0)}

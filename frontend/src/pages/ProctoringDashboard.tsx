@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { 
   Camera, 
@@ -9,6 +9,7 @@ import {
   X,
   Monitor
 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const ProctoringDashboard = () => {
   const [activeStudents, setActiveStudents] = useState<any[]>([]);
@@ -60,7 +61,7 @@ const ProctoringDashboard = () => {
   }, [selectedStudent]);
 
   useEffect(() => {
-    socketRef.current = io(import.meta.env.VITE_API_BASE_URL || window.location.origin);
+    socketRef.current = io(API_BASE_URL);
     socketRef.current.emit('join-room', 'admin-monitoring');
 
     socketRef.current.on('active_students', handleUpdateStudentList);

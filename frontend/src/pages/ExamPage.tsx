@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
-import { Timer, Camera, Mic, AlertTriangle, XCircle, ShieldAlert } from 'lucide-react';
+import { Timer, Camera, AlertTriangle, XCircle, ShieldAlert } from 'lucide-react';
 import logo from '../assets/logo.png';
+import { API_BASE_URL } from '../config';
 
 const ExamPage = () => {
   const { id } = useParams();
@@ -164,13 +165,13 @@ const ExamPage = () => {
 
   useEffect(() => {
     // Initialize Socket
-    socketRef.current = io(import.meta.env.VITE_API_BASE_URL || window.location.origin);
+    socketRef.current = io(API_BASE_URL);
     
     socketRef.current.on('receive_warning', (data: any) => {
       setWarning(data);
     });
 
-    socketRef.current.on('student-exam-terminated', (data: any) => {
+    socketRef.current.on('student-exam-terminated', () => {
       handleSubmit('terminated');
     });
 
