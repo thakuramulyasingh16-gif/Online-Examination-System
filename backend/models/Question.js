@@ -34,6 +34,14 @@ const Question = sequelize.define('Question', {
     type: DataTypes.INTEGER,
     defaultValue: 1,
   },
+  difficulty: {
+    type: DataTypes.STRING,
+    defaultValue: 'Medium',
+  },
+  explanation: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
 });
 
 module.exports = Question;

@@ -1,11 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const { addQuestion, bulkAddQuestions, getQuestionsByExam, deleteQuestion, updateQuestion } = require('../controllers/questionController');
+const {
+  addQuestion,
+  bulkAddQuestions,
+  getQuestionsByExam,
+  getAllQuestions,
+  deleteQuestion,
+  updateQuestion,
+  copyQuestionToExam,
+} = require('../controllers/questionController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-router.route('/').post(protect, admin, addQuestion);
-router.route('/bulk').post(protect, admin, bulkAddQuestions);
-router.route('/:examId').get(protect, getQuestionsByExam);
-router.route('/:id').delete(protect, admin, deleteQuestion).put(protect, admin, updateQuestion);
+router.get('/exam/:examId', protect, getQuestionsByExam);
+router.get('/all', protect, admin, getAllQuestions);
+
+router.post('/', protect, admin, addQuestion);
+router.post('/bulk', protect, admin, bulkAddQuestions);
+router.put('/:id', protect, admin, updateQuestion);
+router.delete('/:id', protect, admin, deleteQuestion);
+router.post('/:id/copy', protect, admin, copyQuestionToExam);
 
 module.exports = router;

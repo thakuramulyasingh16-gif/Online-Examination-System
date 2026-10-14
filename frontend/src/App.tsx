@@ -73,7 +73,15 @@ const AnimatedRoutes = () => {
           path="/results"
           element={
             <ProtectedRoute>
-              <ResultPage />
+              {user?.role === 'admin' ? <AdminDashboard defaultTab="results" /> : <ResultPage />}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />
@@ -81,7 +89,7 @@ const AnimatedRoutes = () => {
           path="/admin/create-exam"
           element={
             <ProtectedRoute adminOnly>
-              <CreateExam />
+              <AdminDashboard defaultTab="exams" />
             </ProtectedRoute>
           }
         />
@@ -97,7 +105,7 @@ const AnimatedRoutes = () => {
           path="/admin/proctoring"
           element={
             <ProtectedRoute adminOnly>
-              <ProctoringDashboard />
+              <AdminDashboard defaultTab="proctoring" />
             </ProtectedRoute>
           }
         />

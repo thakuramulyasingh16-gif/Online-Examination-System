@@ -17,7 +17,7 @@ const Navbar = () => {
     navigate('/login');
   };
 
-  if (!user) return null;
+  if (!user || user.role === 'admin') return null;
 
   const isActive = (path: string) => location.pathname === path;
 

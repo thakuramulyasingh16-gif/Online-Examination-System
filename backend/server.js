@@ -11,6 +11,7 @@ const Question = require('./models/Question');
 const Result = require('./models/Result');
 const Warning = require('./models/Warning');
 const ActivityLog = require('./models/ActivityLog');
+const Setting = require('./models/Setting');
 
 const app = express();
 const http = require('http').createServer(app);
@@ -106,6 +107,21 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('terminate_student_exam', async (data) => {
+    const { studentSocketId, reason } = data;
+    try {
+      io.to(studentSocketId).emit('student-exam-terminated', {
+        message: reason || 'Exam was terminated by administrator for integrity violations.'
+      });
+      if (activeStudents.has(studentSocketId)) {
+        activeStudents.delete(studentSocketId);
+      }
+      io.to('admin-monitoring').emit('active_students', Array.from(activeStudents.entries()));
+    } catch (err) {
+      console.error('Error terminating student exam:', err);
+    }
+  });
+
   socket.on('disconnect', () => {
     if (activeStudents.has(socket.id)) {
       activeStudents.delete(socket.id);
@@ -145,6 +161,8 @@ app.use('/api/students', require('./routes/studentRoutes'));
 app.use('/api/exams', require('./routes/examRoutes'));
 app.use('/api/questions', require('./routes/questionRoutes'));
 app.use('/api/results', require('./routes/resultRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/settings', require('./routes/settingRoutes'));
 
 // Serve the built React frontend (production). Falls back to index.html for
 // client-side routes so refreshing /admin, /exam/1 etc. keeps working.
@@ -173,6 +191,43 @@ const seedAdmin = async () => {
     });
     console.log('Default admin created: loginId: admin, password: admin123');
   }
+
+  // Ensure initial settings exist
+  const settingExists = await Setting.findOne();
+  if (!settingExists) {
+    await Setting.create({
+      collegeName: 'City College',
+      collegeLogo: '/logo.jpg',
+      passingCriteria: 40,
+      warningLimit: 10,
+      contactEmail: 'admin@citycollege.edu',
+    });
+  }
+};
+
+const safeAlterColumns = async () => {
+  try {
+    const qi = sequelize.getQueryInterface();
+    const userTable = await qi.describeTable('Users').catch(() => ({}));
+    if (userTable && !userTable.isActive) {
+      await qi.addColumn('Users', 'isActive', { type: require('sequelize').DataTypes.BOOLEAN, defaultValue: true }).catch(() => {});
+    }
+    const questionTable = await qi.describeTable('Questions').catch(() => ({}));
+    if (questionTable) {
+      if (!questionTable.difficulty) {
+        await qi.addColumn('Questions', 'difficulty', { type: require('sequelize').DataTypes.STRING, defaultValue: 'Medium' }).catch(() => {});
+      }
+      if (!questionTable.explanation) {
+        await qi.addColumn('Questions', 'explanation', { type: require('sequelize').DataTypes.TEXT, allowNull: true }).catch(() => {});
+      }
+    }
+    const resultTable = await qi.describeTable('Results').catch(() => ({}));
+    if (resultTable && !resultTable.answers) {
+      await qi.addColumn('Results', 'answers', { type: require('sequelize').DataTypes.TEXT, allowNull: true }).catch(() => {});
+    }
+  } catch (err) {
+    console.log('Safe alter note:', err.message);
+  }
 };
 
 const startServer = async () => {
@@ -186,6 +241,7 @@ const startServer = async () => {
       ? process.env.DB_SYNC_ALTER === 'true'
       : !hosted;
     await sequelize.sync({ alter });
+    await safeAlterColumns();
     console.log('Database connected and synced successfully');
     await seedAdmin();
     http.listen(PORT, () => console.log(`Server running on port ${PORT}`));

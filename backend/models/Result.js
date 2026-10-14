@@ -22,6 +22,10 @@ const Result = sequelize.define('Result', {
     type: DataTypes.ENUM('completed', 'terminated'),
     defaultValue: 'completed',
   },
+  answers: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
 });
 
 module.exports = Result;
