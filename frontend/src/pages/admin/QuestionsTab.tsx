@@ -858,7 +858,7 @@ export const QuestionsTab: React.FC<QuestionsTabProps> = ({
                     <span>Parsed Preview ({bulkParsedQuestions.length} questions ready)</span>
                     <span className="text-emerald-600 dark:text-emerald-400">Validated</span>
                   </div>
-                  <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <div className="max-h-48 overflow-auto border border-slate-200 dark:border-slate-800 rounded-2xl">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0 font-bold text-slate-600 dark:text-slate-300">
                         <tr>
