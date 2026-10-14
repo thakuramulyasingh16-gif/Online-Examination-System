@@ -1,0 +1,263 @@
+diff --git a/backend/server.js b/backend/server.js
+index 0ea42da..11c776a 100644
+--- a/backend/server.js
++++ b/backend/server.js
+@@ -17,6 +17,8 @@ const helmet = require('helmet');
+ const rateLimit = require('express-rate-limit');
+ 
+ const app = express();
++// Render sits behind a proxy; needed for express-rate-limit to see the real client IP
++app.set('trust proxy', 1);
+ const http = require('http').createServer(app);
+ const io = require('socket.io')(http, {
+   cors: {
+@@ -267,6 +269,33 @@ const safeAlterColumns = async () => {
+   }
+ };
+ 
++// Adds any column that exists in a Sequelize model but is missing in the database.
++// (sync({ alter:false }) on hosted DBs only creates missing tables, never columns.)
++const syncMissingColumns = async () => {
++  const qi = sequelize.getQueryInterface();
++  for (const model of Object.values(sequelize.models)) {
++    try {
++      const table = model.getTableName();
++      const existing = await qi.describeTable(table);
++      for (const [name, attr] of Object.entries(model.rawAttributes)) {
++        const field = attr.field || name;
++        if (existing[field] || attr.primaryKey) continue;
++        const def = { ...attr };
++        delete def.unique;
++        delete def.references;
++        try {
++          await qi.addColumn(table, field, def);
++          console.log(`Added missing column ${table}.${field}`);
++        } catch (e) {
++          console.error(`Could not add column ${table}.${field}:`, e.message);
++        }
++      }
++    } catch (e) {
++      console.error(`Column check failed for ${model.name}:`, e.message);
++    }
++  }
++};
++
+ const startServer = async () => {
+   try {
+     await ensureDatabaseExists();
+@@ -279,6 +308,7 @@ const startServer = async () => {
+       : !hosted;
+     await sequelize.sync({ alter });
+     await safeAlterColumns();
++    await syncMissingColumns();
+     console.log('Database connected and synced successfully');
+     await seedAdmin();
+     http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+diff --git a/frontend/src/pages/Login.tsx b/frontend/src/pages/Login.tsx
+index 1936072..a90fb08 100644
+--- a/frontend/src/pages/Login.tsx
++++ b/frontend/src/pages/Login.tsx
+@@ -11,7 +11,6 @@ import {
+   Moon,
+   Eye,
+   EyeOff,
+-  GraduationCap,
+   Shield,
+   AlertCircle,
+   CheckCircle2,
+@@ -23,11 +22,9 @@ import {
+ } from 'lucide-react';
+ 
+ const Login: React.FC = () => {
+-  const [role, setRole] = useState<'student' | 'admin'>('student');
+   const [loginId, setLoginId] = useState('');
+   const [password, setPassword] = useState('');
+   const [showPassword, setShowPassword] = useState(false);
+-  const [rememberMe, setRememberMe] = useState(false);
+   const [isLoading, setIsLoading] = useState(false);
+   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+   const [isShaking, setIsShaking] = useState(false);
+@@ -42,20 +39,6 @@ const Login: React.FC = () => {
+ 
+   // Restore saved credentials & proactively ping Render health check
+   useEffect(() => {
+-    try {
+-      const savedId = localStorage.getItem('city_college_login_id');
+-      const savedRole = localStorage.getItem('city_college_login_role') as 'student' | 'admin' | null;
+-      if (savedId) {
+-        setLoginId(savedId);
+-        setRememberMe(true);
+-      }
+-      if (savedRole === 'student' || savedRole === 'admin') {
+-        setRole(savedRole);
+-      }
+-    } catch {
+-      // ignore storage errors
+-    }
+-
+     // Ping health endpoint to warm up sleeping Render instance
+     const pingHealth = async () => {
+       const slowTimeout = setTimeout(() => {
+@@ -79,11 +62,6 @@ const Login: React.FC = () => {
+     };
+   }, []);
+ 
+-  const handleRoleChange = (newRole: 'student' | 'admin') => {
+-    setRole(newRole);
+-    setErrorMessage(null);
+-  };
+-
+   const handleSubmit = async (e: React.FormEvent) => {
+     e.preventDefault();
+     setErrorMessage(null);
+@@ -98,18 +76,7 @@ const Login: React.FC = () => {
+     try {
+       await login(loginId.trim(), password);
+ 
+-      if (rememberMe) {
+-        localStorage.setItem('city_college_login_id', loginId.trim());
+-        localStorage.setItem('city_college_login_role', role);
+-      } else {
+-        localStorage.removeItem('city_college_login_id');
+-        localStorage.removeItem('city_college_login_role');
+-      }
+-
+-      toast.success(
+-        role === 'admin' ? 'Welcome back, Administrator!' : 'Welcome back to City College Portal!',
+-        'Authentication Successful'
+-      );
++      toast.success('Welcome back to City College Portal!', 'Authentication Successful');
+       navigate('/');
+     } catch (err: any) {
+       const serverMsg = err.response?.data?.message;
+@@ -275,53 +242,15 @@ const Login: React.FC = () => {
+             }`}
+           >
+             {/* Top Accent Line */}
+-            <div
+-              className={`absolute top-0 inset-x-0 h-1.5 transition-colors duration-300 ${
+-                role === 'student'
+-                  ? 'bg-gradient-to-r from-orange-500 to-amber-500'
+-                  : 'bg-gradient-to-r from-slate-700 via-orange-600 to-slate-900 dark:from-slate-600 dark:to-orange-500'
+-              }`}
+-            />
+-
+-            {/* Role Switcher Tabs */}
+-            <div className="mb-6">
+-              <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl flex items-center gap-1.5 border border-slate-200/60 dark:border-slate-700/60">
+-                <button
+-                  type="button"
+-                  onClick={() => handleRoleChange('student')}
+-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 select-none ${
+-                    role === 'student'
+-                      ? 'bg-white dark:bg-slate-900 text-primary-orange shadow-soft font-extrabold'
+-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+-                  }`}
+-                >
+-                  <GraduationCap size={16} />
+-                  Student Portal
+-                </button>
+-                <button
+-                  type="button"
+-                  onClick={() => handleRoleChange('admin')}
+-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 select-none ${
+-                    role === 'admin'
+-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-soft font-extrabold'
+-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+-                  }`}
+-                >
+-                  <Shield size={15} />
+-                  Admin Console
+-                </button>
+-              </div>
+-            </div>
++            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-orange-500 to-amber-500" />
+ 
+             {/* Header Content */}
+             <div className="mb-6">
+               <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+-                {role === 'student' ? 'Student Sign In' : 'Administrator Sign In'}
++                Sign In
+               </h3>
+               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+-                {role === 'student'
+-                  ? 'Enter your student credentials to begin or review your exams.'
+-                  : 'Enter authorized administrative credentials for exam control & proctoring.'}
++                Roll number (students) ya admin ID aur password daalkar login karein.
+               </p>
+             </div>
+ 
+@@ -353,11 +282,11 @@ const Login: React.FC = () => {
+               {/* Login ID Input with Focus Glow */}
+               <div className="space-y-1.5">
+                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+-                  {role === 'student' ? 'Student Login ID' : 'Admin Username'}
++                  Roll Number / Login ID
+                 </label>
+                 <div className="relative flex items-center">
+                   <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+-                    {role === 'student' ? <User size={18} /> : <Shield size={18} />}
++                    <User size={18} />
+                   </div>
+                   <input
+                     type="text"
+@@ -367,7 +296,7 @@ const Login: React.FC = () => {
+                       setLoginId(e.target.value);
+                       if (errorMessage) setErrorMessage(null);
+                     }}
+-                    placeholder={role === 'student' ? 'e.g. STU-001 or roll number' : 'e.g. admin'}
++                    placeholder="Roll number ya Admin ID"
+                     className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none transition-all duration-200 focus:border-primary-orange focus:ring-4 focus:ring-orange-500/20 focus:shadow-[0_0_18px_rgba(255,140,0,0.22)] focus:bg-white dark:focus:bg-slate-900"
+                   />
+                 </div>
+@@ -405,47 +334,20 @@ const Login: React.FC = () => {
+                 </div>
+               </div>
+ 
+-              {/* Remember Me Checkbox */}
+-              <div className="flex items-center justify-between pt-1">
+-                <label className="flex items-center gap-2 cursor-pointer select-none">
+-                  <input
+-                    type="checkbox"
+-                    checked={rememberMe}
+-                    onChange={(e) => setRememberMe(e.target.checked)}
+-                    className="w-4 h-4 rounded-md border-slate-300 text-primary-orange focus:ring-primary-orange focus:ring-offset-0 cursor-pointer accent-orange-500"
+-                  />
+-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+-                    Remember me on this device
+-                  </span>
+-                </label>
+-              </div>
+-
+               {/* Login Button with Lift + Shadow Hover State */}
+               <div className="pt-2">
+                 <button
+                   type="submit"
+                   disabled={isLoading}
+-                  className={`w-full py-3.5 px-6 rounded-2xl font-bold text-sm tracking-wide text-white transition-all duration-200 flex items-center justify-center gap-2 select-none shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md ${
+-                    role === 'student'
+-                      ? 'bg-gradient-to-r from-orange-500 via-primary-orange to-amber-500 hover:from-orange-600 hover:to-amber-600 hover:shadow-orange-500/25'
+-                      : 'bg-gradient-to-r from-slate-900 via-slate-800 to-orange-700 hover:from-black hover:to-orange-800 hover:shadow-slate-900/30 dark:from-slate-800 dark:to-orange-600'
+-                  }`}
++                  className="w-full py-3.5 px-6 rounded-2xl font-bold text-sm tracking-wide text-white transition-all duration-200 flex items-center justify-center gap-2 select-none shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md bg-gradient-to-r from-orange-500 via-primary-orange to-amber-500 hover:from-orange-600 hover:to-amber-600 hover:shadow-orange-500/25"
+                 >
+                   {isLoading ? (
+                     <>
+                       <Loader2 size={18} className="animate-spin" />
+-                      <span>
+-                        {serverWaking
+-                          ? 'Server Jag Raha Hai...'
+-                          : role === 'student'
+-                          ? 'Signing in as Student...'
+-                          : 'Signing in as Admin...'}
+-                      </span>
++                      <span>{serverWaking ? 'Server Jag Raha Hai...' : 'Signing in...'}</span>
+                     </>
+                   ) : (
+-                    <span>
+-                      {role === 'student' ? 'Sign In as Student' : 'Sign In as Administrator'}
+-                    </span>
++                    <span>Sign In</span>
+                   )}
+                 </button>
+               </div>
