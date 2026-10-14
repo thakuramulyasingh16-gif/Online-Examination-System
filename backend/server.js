@@ -13,6 +13,9 @@ const Warning = require('./models/Warning');
 const ActivityLog = require('./models/ActivityLog');
 const Setting = require('./models/Setting');
 
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
@@ -21,6 +24,22 @@ const io = require('socket.io')(http, {
     methods: ["GET", "POST"]
   }
 });
+
+// Security: Helmet with cross-origin asset support
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false,
+}));
+
+// Rate limiting for login endpoint
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 25, // limit each IP to 25 login requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many login attempts. Please try again after 15 minutes.' },
+});
+app.use('/api/auth/login', loginRateLimiter);
 
 app.use(cors());
 app.use(express.json());
@@ -188,8 +207,9 @@ const seedAdmin = async () => {
       loginId: 'admin',
       password: hashedPassword,
       role: 'admin',
+      mustChangePassword: true,
     });
-    console.log('Default admin created: loginId: admin, password: admin123');
+    console.log('Default admin created: loginId: admin, password: admin123 (mustChangePassword: true)');
   }
 
   // Ensure initial settings exist
@@ -209,8 +229,25 @@ const safeAlterColumns = async () => {
   try {
     const qi = sequelize.getQueryInterface();
     const userTable = await qi.describeTable('Users').catch(() => ({}));
-    if (userTable && !userTable.isActive) {
-      await qi.addColumn('Users', 'isActive', { type: require('sequelize').DataTypes.BOOLEAN, defaultValue: true }).catch(() => {});
+    if (userTable) {
+      if (!userTable.isActive) {
+        await qi.addColumn('Users', 'isActive', { type: require('sequelize').DataTypes.BOOLEAN, defaultValue: true }).catch(() => {});
+      }
+      if (!userTable.mustChangePassword) {
+        await qi.addColumn('Users', 'mustChangePassword', { type: require('sequelize').DataTypes.BOOLEAN, defaultValue: false }).catch(() => {});
+      }
+    }
+    const examTable = await qi.describeTable('Exams').catch(() => ({}));
+    if (examTable) {
+      if (!examTable.startTime) {
+        await qi.addColumn('Exams', 'startTime', { type: require('sequelize').DataTypes.DATE, allowNull: true }).catch(() => {});
+      }
+      if (!examTable.endTime) {
+        await qi.addColumn('Exams', 'endTime', { type: require('sequelize').DataTypes.DATE, allowNull: true }).catch(() => {});
+      }
+      if (!examTable.shuffle) {
+        await qi.addColumn('Exams', 'shuffle', { type: require('sequelize').DataTypes.BOOLEAN, defaultValue: false }).catch(() => {});
+      }
     }
     const questionTable = await qi.describeTable('Questions').catch(() => ({}));
     if (questionTable) {

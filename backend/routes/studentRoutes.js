@@ -30,7 +30,7 @@ router.use(protect);
 router.use(admin);
 
 router.get('/', getAllStudents);
-router.post('/bulk', bulkUploadStudents);
+router.post('/bulk', upload.single('file'), bulkUploadStudents);
 router.post('/', upload.single('profileImage'), createStudent);
 router.put('/:id', upload.single('profileImage'), updateStudent);
 router.delete('/:id', deleteStudent);

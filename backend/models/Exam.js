@@ -26,6 +26,10 @@ const Exam = sequelize.define('Exam', {
     type: DataTypes.FLOAT,
     defaultValue: 0,
   },
+  shuffle: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
   shuffleQuestions: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
@@ -37,6 +41,14 @@ const Exam = sequelize.define('Exam', {
   isPublished: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
+  },
+  startTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  endTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
   scheduledAt: {
     type: DataTypes.DATE,

@@ -11,12 +11,19 @@ const createExam = async (req, res) => {
       totalMarks,
       passMarks,
       negativeMarking,
+      shuffle,
       shuffleQuestions,
       shuffleOptions,
       isPublished,
+      startTime,
+      endTime,
       scheduledAt,
       endAt,
     } = req.body;
+
+    const start = startTime || scheduledAt || null;
+    const end = endTime || endAt || null;
+    const isShuffle = shuffle === true || shuffle === 'true' || shuffleQuestions === true || shuffleQuestions === 'true';
 
     const exam = await Exam.create({
       title,
@@ -25,11 +32,14 @@ const createExam = async (req, res) => {
       totalMarks: totalMarks !== undefined ? parseInt(totalMarks) : 100,
       passMarks: passMarks !== undefined ? parseInt(passMarks) : 40,
       negativeMarking: negativeMarking !== undefined ? parseFloat(negativeMarking) : 0,
-      shuffleQuestions: shuffleQuestions === true || shuffleQuestions === 'true',
+      shuffle: isShuffle,
+      shuffleQuestions: isShuffle,
       shuffleOptions: shuffleOptions === true || shuffleOptions === 'true',
       isPublished: isPublished !== false && isPublished !== 'false',
-      scheduledAt: scheduledAt || null,
-      endAt: endAt || null,
+      startTime: start,
+      endTime: end,
+      scheduledAt: start,
+      endAt: end,
       createdBy: req.user.id,
     });
 
@@ -52,9 +62,12 @@ const updateExam = async (req, res) => {
       totalMarks,
       passMarks,
       negativeMarking,
+      shuffle,
       shuffleQuestions,
       shuffleOptions,
       isPublished,
+      startTime,
+      endTime,
       scheduledAt,
       endAt,
     } = req.body;
@@ -66,11 +79,23 @@ const updateExam = async (req, res) => {
     if (totalMarks !== undefined) updateData.totalMarks = parseInt(totalMarks);
     if (passMarks !== undefined) updateData.passMarks = parseInt(passMarks);
     if (negativeMarking !== undefined) updateData.negativeMarking = parseFloat(negativeMarking);
-    if (shuffleQuestions !== undefined) updateData.shuffleQuestions = shuffleQuestions === true || shuffleQuestions === 'true';
+    if (shuffle !== undefined || shuffleQuestions !== undefined) {
+      const isShuffle = (shuffle === true || shuffle === 'true' || shuffleQuestions === true || shuffleQuestions === 'true');
+      updateData.shuffle = isShuffle;
+      updateData.shuffleQuestions = isShuffle;
+    }
     if (shuffleOptions !== undefined) updateData.shuffleOptions = shuffleOptions === true || shuffleOptions === 'true';
     if (isPublished !== undefined) updateData.isPublished = isPublished === true || isPublished === 'true';
-    if (scheduledAt !== undefined) updateData.scheduledAt = scheduledAt || null;
-    if (endAt !== undefined) updateData.endAt = endAt || null;
+    if (startTime !== undefined || scheduledAt !== undefined) {
+      const s = startTime || scheduledAt || null;
+      updateData.startTime = s;
+      updateData.scheduledAt = s;
+    }
+    if (endTime !== undefined || endAt !== undefined) {
+      const e = endTime || endAt || null;
+      updateData.endTime = e;
+      updateData.endAt = e;
+    }
 
     await exam.update(updateData);
     res.json(exam);
@@ -95,11 +120,14 @@ const duplicateExam = async (req, res) => {
       totalMarks: sourceExam.totalMarks,
       passMarks: sourceExam.passMarks,
       negativeMarking: sourceExam.negativeMarking,
-      shuffleQuestions: sourceExam.shuffleQuestions,
-      shuffleOptions: sourceExam.shuffleOptions,
+      shuffle: sourceExam.shuffle || sourceExam.shuffleQuestions || false,
+      shuffleQuestions: sourceExam.shuffleQuestions || sourceExam.shuffle || false,
+      shuffleOptions: sourceExam.shuffleOptions || false,
       isPublished: false, // Start copies as drafts/unpublished
-      scheduledAt: sourceExam.scheduledAt,
-      endAt: sourceExam.endAt,
+      startTime: sourceExam.startTime || sourceExam.scheduledAt,
+      endTime: sourceExam.endTime || sourceExam.endAt,
+      scheduledAt: sourceExam.scheduledAt || sourceExam.startTime,
+      endAt: sourceExam.endAt || sourceExam.endTime,
       createdBy: req.user.id,
     });
 

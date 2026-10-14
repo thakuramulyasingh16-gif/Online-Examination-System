@@ -35,15 +35,90 @@ const addQuestion = async (req, res) => {
   }
 };
 
+const fs = require('fs');
+
+const parseCsvQuestions = (csvText, defaultExamId) => {
+  const lines = csvText.trim().split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length < 2) return [];
+  const parseLine = (line) => {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim());
+    return values;
+  };
+
+  const headers = parseLine(lines[0]).map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseLine(lines[i]);
+    const rowObj = {};
+    headers.forEach((h, idx) => {
+      rowObj[h] = cols[idx] !== undefined ? cols[idx] : '';
+    });
+    rows.push(rowObj);
+  }
+
+  return rows.map((r) => {
+    let corrAns = r.correctanswer || r.correctoption || r.answer || r.ans || 'A';
+    corrAns = String(corrAns).trim().toUpperCase();
+    return {
+      examId: r.examid ? parseInt(r.examid) : defaultExamId,
+      question: r.question || r.questiontext || r.title || 'Untitled Question',
+      option1: r.option1 || r.optiona || r.a || 'Option A',
+      option2: r.option2 || r.optionb || r.b || 'Option B',
+      option3: r.option3 || r.optionc || r.c || 'Option C',
+      option4: r.option4 || r.optiond || r.d || 'Option D',
+      correctAnswer: corrAns,
+      marks: r.marks ? parseInt(r.marks) : 1,
+      difficulty: r.difficulty || 'Medium',
+      explanation: r.explanation || null,
+    };
+  });
+};
+
 const bulkAddQuestions = async (req, res) => {
   try {
-    const questions = req.body; // Expecting an array of question objects
-    if (!Array.isArray(questions)) {
-      return res.status(400).json({ message: 'Expected an array of questions' });
+    let questions = req.body;
+    const defaultExamId = req.query.examId || (req.body && req.body.examId);
+
+    if (req.file) {
+      const content = fs.readFileSync(req.file.path, 'utf8');
+      questions = parseCsvQuestions(content, defaultExamId);
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    } else if (typeof req.body === 'string' && req.body.includes(',')) {
+      questions = parseCsvQuestions(req.body, defaultExamId);
+    } else if (req.body && typeof req.body.csv === 'string') {
+      questions = parseCsvQuestions(req.body.csv, defaultExamId || req.body.examId);
+    } else if (req.body && Array.isArray(req.body.questions)) {
+      questions = req.body.questions.map((q) => ({
+        ...q,
+        examId: q.examId || defaultExamId,
+      }));
+    }
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ message: 'Expected an array of questions or CSV file' });
     }
 
     const cleaned = questions.map((q) => ({
-      examId: q.examId,
+      examId: q.examId || defaultExamId,
       question: q.question,
       option1: q.option1,
       option2: q.option2,
@@ -53,10 +128,18 @@ const bulkAddQuestions = async (req, res) => {
       marks: q.marks ? parseInt(q.marks) : 1,
       difficulty: q.difficulty || 'Medium',
       explanation: q.explanation || null,
-    }));
+    })).filter((q) => q.examId && q.question);
+
+    if (cleaned.length === 0) {
+      return res.status(400).json({ message: 'No valid questions found with an examId' });
+    }
 
     const createdQuestions = await Question.bulkCreate(cleaned);
-    res.status(201).json(createdQuestions);
+    res.status(201).json({
+      message: `Successfully imported ${createdQuestions.length} questions`,
+      count: createdQuestions.length,
+      questions: createdQuestions,
+    });
   } catch (error) {
     console.error('Bulk Add Questions Error:', error);
     res.status(500).json({ message: error.message });

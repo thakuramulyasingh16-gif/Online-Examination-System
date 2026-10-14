@@ -160,11 +160,85 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const parseCsvString = (csvText) => {
+  const lines = csvText.trim().split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length < 2) return [];
+  const parseLine = (line) => {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim());
+    return values;
+  };
+
+  const headers = parseLine(lines[0]).map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseLine(lines[i]);
+    const rowObj = {};
+    headers.forEach((h, idx) => {
+      rowObj[h] = cols[idx] !== undefined ? cols[idx] : '';
+    });
+    rows.push(rowObj);
+  }
+  return rows;
+};
+
 const bulkUploadStudents = async (req, res) => {
   try {
-    const studentsData = req.body; // Expecting array of { name, email, loginId, password }
+    let studentsData = req.body;
+
+    if (req.file) {
+      const content = fs.readFileSync(req.file.path, 'utf8');
+      const parsed = parseCsvString(content);
+      studentsData = parsed.map((p) => ({
+        name: p.name || p.studentname || p.fullname,
+        email: p.email || p.emailaddress,
+        loginId: p.loginid || p.rollno || p.studentid || p.username,
+        password: p.password,
+        isActive: p.isactive !== 'false' && p.status !== 'inactive',
+      }));
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    } else if (typeof req.body === 'string' && req.body.includes(',')) {
+      const parsed = parseCsvString(req.body);
+      studentsData = parsed.map((p) => ({
+        name: p.name || p.studentname || p.fullname,
+        email: p.email || p.emailaddress,
+        loginId: p.loginid || p.rollno || p.studentid,
+        password: p.password,
+        isActive: p.isactive !== 'false',
+      }));
+    } else if (req.body && typeof req.body.csv === 'string') {
+      const parsed = parseCsvString(req.body.csv);
+      studentsData = parsed.map((p) => ({
+        name: p.name || p.studentname || p.fullname,
+        email: p.email || p.emailaddress,
+        loginId: p.loginid || p.rollno || p.studentid,
+        password: p.password,
+        isActive: p.isactive !== 'false',
+      }));
+    } else if (req.body && Array.isArray(req.body.students)) {
+      studentsData = req.body.students;
+    }
+
     if (!Array.isArray(studentsData) || studentsData.length === 0) {
-      return res.status(400).json({ message: 'Array of student records is required' });
+      return res.status(400).json({ message: 'Valid student records or CSV content is required' });
     }
 
     const createdList = [];
@@ -172,17 +246,17 @@ const bulkUploadStudents = async (req, res) => {
 
     for (let i = 0; i < studentsData.length; i++) {
       const row = studentsData[i];
-      if (!row.name || !row.name.trim()) {
+      if (!row || !row.name || !row.name.trim()) {
         errors.push({ row: i + 1, error: 'Name is required' });
         continue;
       }
 
-      const finalLoginId = row.loginId && row.loginId.trim()
-        ? row.loginId.trim()
+      const finalLoginId = row.loginId && String(row.loginId).trim()
+        ? String(row.loginId).trim()
         : generateRandomLoginId();
 
-      const finalPassword = row.password && row.password.trim()
-        ? row.password.trim()
+      const finalPassword = row.password && String(row.password).trim()
+        ? String(row.password).trim()
         : generateRandomPassword();
 
       const existing = await User.findOne({ where: { loginId: finalLoginId } });
@@ -194,11 +268,11 @@ const bulkUploadStudents = async (req, res) => {
       const hashedPassword = await bcrypt.hash(finalPassword, 10);
       const student = await User.create({
         name: row.name.trim(),
-        email: row.email ? row.email.trim() : null,
+        email: row.email ? String(row.email).trim() : null,
         loginId: finalLoginId,
         password: hashedPassword,
         role: 'student',
-        isActive: row.isActive !== false,
+        isActive: row.isActive !== false && row.isActive !== 'false',
       });
 
       createdList.push({
