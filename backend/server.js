@@ -17,6 +17,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
+// Render sits behind a proxy; needed for express-rate-limit to see the real client IP
+app.set('trust proxy', 1);
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
   cors: {
@@ -267,6 +269,33 @@ const safeAlterColumns = async () => {
   }
 };
 
+// Adds any column that exists in a Sequelize model but is missing in the database.
+// (sync({ alter:false }) on hosted DBs only creates missing tables, never columns.)
+const syncMissingColumns = async () => {
+  const qi = sequelize.getQueryInterface();
+  for (const model of Object.values(sequelize.models)) {
+    try {
+      const table = model.getTableName();
+      const existing = await qi.describeTable(table);
+      for (const [name, attr] of Object.entries(model.rawAttributes)) {
+        const field = attr.field || name;
+        if (existing[field] || attr.primaryKey) continue;
+        const def = { ...attr };
+        delete def.unique;
+        delete def.references;
+        try {
+          await qi.addColumn(table, field, def);
+          console.log(`Added missing column ${table}.${field}`);
+        } catch (e) {
+          console.error(`Could not add column ${table}.${field}:`, e.message);
+        }
+      }
+    } catch (e) {
+      console.error(`Column check failed for ${model.name}:`, e.message);
+    }
+  }
+};
+
 const startServer = async () => {
   try {
     await ensureDatabaseExists();
@@ -279,6 +308,7 @@ const startServer = async () => {
       : !hosted;
     await sequelize.sync({ alter });
     await safeAlterColumns();
+    await syncMissingColumns();
     console.log('Database connected and synced successfully');
     await seedAdmin();
     http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
