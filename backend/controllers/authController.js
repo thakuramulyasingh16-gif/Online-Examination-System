@@ -31,6 +31,7 @@ const updateProfile = async (req, res) => {
   try {
     const { loginId, password, name } = req.body;
     const user = await User.findByPk(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
     
     if (loginId && loginId !== user.loginId) {
       const exists = await User.findOne({ where: { loginId } });
@@ -39,12 +40,25 @@ const updateProfile = async (req, res) => {
     }
 
     if (name) user.name = name;
-    if (password) {
+    if (req.file) {
+      user.profileImage = `/uploads/${req.file.filename}`;
+    }
+    if (password && password.trim()) {
       user.password = await bcrypt.hash(password, 10);
     }
 
     await user.save();
-    res.json({ message: 'Profile updated successfully', user: { id: user.id, name: user.name, loginId: user.loginId, role: user.role } });
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user.id,
+        name: user.name,
+        loginId: user.loginId,
+        email: user.email,
+        role: user.role,
+        profileImage: user.profileImage,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

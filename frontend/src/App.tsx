@@ -12,6 +12,8 @@ import ResultPage from './pages/ResultPage';
 import CreateExam from './pages/CreateExam';
 import ManageQuestions from './pages/ManageQuestions';
 import ProctoringDashboard from './pages/ProctoringDashboard';
+import MyExams from './pages/MyExams';
+import Profile from './pages/Profile';
 
 const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) => {
   const { user, loading } = useAuth();
@@ -48,6 +50,22 @@ const AnimatedRoutes = () => {
           element={
             <ProtectedRoute>
               <ExamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-exams"
+          element={
+            <ProtectedRoute>
+              <MyExams />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />

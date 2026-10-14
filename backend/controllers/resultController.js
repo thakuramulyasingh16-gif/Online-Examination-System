@@ -37,9 +37,14 @@ const getResults = async (req, res) => {
   try {
     const results = await Result.findAll({
       include: [
-        { model: User, attributes: ['name', 'email'] },
-        { model: Exam, attributes: ['title'] },
+        { model: User, attributes: ['name', 'email', 'loginId'] },
+        {
+          model: Exam,
+          attributes: ['id', 'title', 'duration', 'createdAt'],
+          include: [{ model: Question }],
+        },
       ],
+      order: [['createdAt', 'DESC']],
     });
     res.json(results);
   } catch (error) {
@@ -51,7 +56,14 @@ const getUserResults = async (req, res) => {
   try {
     const results = await Result.findAll({
       where: { userId: req.user.id },
-      include: [{ model: Exam, attributes: ['title'] }],
+      include: [
+        {
+          model: Exam,
+          attributes: ['id', 'title', 'duration', 'createdAt'],
+          include: [{ model: Question }],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
     });
     res.json(results);
   } catch (error) {

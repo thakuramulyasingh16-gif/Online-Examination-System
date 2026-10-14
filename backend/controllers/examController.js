@@ -17,11 +17,17 @@ const getExams = async (req, res) => {
     const exams = await Exam.findAll({
       include: [
         {
+          model: Question,
+          attributes: ['id', 'marks'],
+          required: false,
+        },
+        {
           model: Result,
           where: { userId: req.user.id },
-          required: false
-        }
-      ]
+          required: false,
+        },
+      ],
+      order: [['createdAt', 'DESC']],
     });
     res.json(exams);
   } catch (error) {

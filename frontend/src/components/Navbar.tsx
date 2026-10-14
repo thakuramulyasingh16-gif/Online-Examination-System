@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, User, Sun, Moon, Menu, X, Shield, LayoutDashboard, Award } from 'lucide-react';
+import { LogOut, User, Sun, Moon, Menu, X, Shield, LayoutDashboard, Award, BookOpen } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 const Navbar = () => {
@@ -57,6 +57,17 @@ const Navbar = () => {
                 Dashboard
               </Link>
               <Link
+                to="/my-exams"
+                className={`px-3 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 ${
+                  isActive('/my-exams')
+                    ? 'text-primary-orange bg-orange-50 dark:bg-orange-950/40 font-bold'
+                    : 'hover:text-primary-orange hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                <BookOpen size={16} />
+                My Exams
+              </Link>
+              <Link
                 to="/results"
                 className={`px-3 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 ${
                   isActive('/results')
@@ -66,6 +77,17 @@ const Navbar = () => {
               >
                 <Award size={16} />
                 Results
+              </Link>
+              <Link
+                to="/profile"
+                className={`px-3 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 ${
+                  isActive('/profile')
+                    ? 'text-primary-orange bg-orange-50 dark:bg-orange-950/40 font-bold'
+                    : 'hover:text-primary-orange hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                <User size={16} />
+                Profile
               </Link>
               {user.role === 'admin' && (
                 <Link
@@ -219,6 +241,18 @@ const Navbar = () => {
                   Dashboard
                 </Link>
                 <Link
+                  to="/my-exams"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+                    isActive('/my-exams')
+                      ? 'bg-orange-50 dark:bg-orange-950/40 text-primary-orange font-bold'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <BookOpen size={18} />
+                  My Exams
+                </Link>
+                <Link
                   to="/results"
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
@@ -229,6 +263,18 @@ const Navbar = () => {
                 >
                   <Award size={18} />
                   Results
+                </Link>
+                <Link
+                  to="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+                    isActive('/profile')
+                      ? 'bg-orange-50 dark:bg-orange-950/40 text-primary-orange font-bold'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <User size={18} />
+                  Profile
                 </Link>
                 {user.role === 'admin' && (
                   <Link
