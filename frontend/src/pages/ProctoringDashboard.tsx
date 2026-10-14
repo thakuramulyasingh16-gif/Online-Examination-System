@@ -10,8 +10,10 @@ import {
   Monitor
 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { useToast } from '../context/ToastContext';
 
 const ProctoringDashboard = () => {
+  const { toast } = useToast();
   const [activeStudents, setActiveStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [warningMessage, setWarningMessage] = useState('');
@@ -38,7 +40,7 @@ const ProctoringDashboard = () => {
     });
 
     setWarningMessage('');
-    alert('Warning sent successfully');
+    toast.success('Warning sent successfully to student', 'Warning Sent');
   };
 
   const handleUpdateStudentList = useCallback((list: any) => {

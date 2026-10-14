@@ -5,9 +5,12 @@ import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 import { Users, BookOpen, BarChart2, Plus, Trash2, Edit, Camera, Settings, Lock, Monitor } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { useToast } from '../context/ToastContext';
+import { Modal, Button, Input } from '../components/ui';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [students, setStudents] = useState<any[]>([]);
   const [exams, setExams] = useState<any[]>([]);
   const [monitoringFeeds, setMonitoringFeeds] = useState<{[key: string]: any}>({});
@@ -53,13 +56,14 @@ const AdminDashboard = () => {
       } else {
         await api.post('/students', data);
       }
+      toast.success(editingStudent ? 'Student record updated' : 'New student created successfully');
       setShowStudentModal(false);
       setEditingStudent(null);
       setFormData({ name: '', email: '', loginId: '', password: '' });
       setProfileImage(null);
       fetchStudents();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error saving student');
+      toast.error(error.response?.data?.message || 'Error saving student');
     }
   };
 
@@ -67,25 +71,34 @@ const AdminDashboard = () => {
     e.preventDefault();
     try {
       await api.put('/auth/profile', profileFormData);
-      alert('Profile updated successfully! Please login again if you changed credentials.');
+      toast.success('Profile updated successfully!');
       setShowProfileModal(false);
-      window.location.reload(); 
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error updating profile');
+      toast.error(error.response?.data?.message || 'Error updating profile');
     }
   };
 
   const deleteStudent = async (id: number) => {
-    if (window.confirm('Are you sure?')) {
-      await api.delete(`/students/${id}`);
-      fetchStudents();
+    if (window.confirm('Are you sure you want to delete this student?')) {
+      try {
+        await api.delete(`/students/${id}`);
+        toast.success('Student removed successfully');
+        fetchStudents();
+      } catch {
+        toast.error('Failed to delete student');
+      }
     }
   };
 
   const deleteExam = async (id: number) => {
-    if (window.confirm('Are you sure?')) {
-      await api.delete(`/exams/${id}`);
-      fetchExams();
+    if (window.confirm('Are you sure you want to delete this exam?')) {
+      try {
+        await api.delete(`/exams/${id}`);
+        toast.success('Exam removed successfully');
+        fetchExams();
+      } catch {
+        toast.error('Failed to delete exam');
+      }
     }
   };
 
@@ -122,81 +135,84 @@ const AdminDashboard = () => {
   }, []);
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-          <p className="text-gray-500">Manage your system students and examinations</p>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Admin Dashboard</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage system students, proctoring feeds, and examinations</p>
         </div>
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setShowProfileModal(true)}
-            className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-black transition-colors shadow-md"
+            className="flex items-center gap-2 bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700 px-4 py-2.5 rounded-xl hover:bg-black transition-all shadow-sm font-semibold text-sm"
           >
-            <Settings size={20} /> Security Settings
+            <Settings size={18} /> Security Settings
           </button>
           <button
             onClick={() => { setShowStudentModal(true); setEditingStudent(null); }}
-            className="flex items-center gap-2 bg-primary-orange text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors shadow-md"
+            className="flex items-center gap-2 bg-primary-orange text-white px-4 py-2.5 rounded-xl hover:bg-orange-600 transition-all shadow-sm font-semibold text-sm"
           >
-            <Plus size={20} /> Add Student
+            <Plus size={18} /> Add Student
           </button>
           <Link
             to="/admin/create-exam"
-            className="flex items-center gap-2 bg-secondary-yellow text-gray-800 px-4 py-2 rounded-lg hover:bg-yellow-500 transition-colors shadow-md font-semibold"
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl transition-all shadow-sm font-semibold text-sm"
           >
-            <Plus size={20} /> Create Exam
+            <Plus size={18} /> Create Exam
           </Link>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-primary-orange flex items-center gap-4">
-          <div className="bg-primary-orange/10 p-4 rounded-full">
-            <Users className="text-primary-orange w-8 h-8" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-card border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-primary-orange flex items-center gap-4">
+          <div className="bg-orange-50 dark:bg-orange-950/40 p-3.5 rounded-2xl text-primary-orange">
+            <Users className="w-7 h-7" />
           </div>
           <div>
-            <p className="text-gray-500 text-sm">Total Students</p>
-            <p className="text-2xl font-bold">{students.length}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Total Students</p>
+            <p className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">{students.length}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-secondary-yellow flex items-center gap-4">
-          <div className="bg-secondary-yellow/10 p-4 rounded-full">
-            <BookOpen className="text-yellow-600 w-8 h-8" />
+
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-card border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-amber-500 flex items-center gap-4">
+          <div className="bg-amber-50 dark:bg-amber-950/40 p-3.5 rounded-2xl text-amber-600 dark:text-amber-400">
+            <BookOpen className="w-7 h-7" />
           </div>
           <div>
-            <p className="text-gray-500 text-sm">Active Exams</p>
-            <p className="text-2xl font-bold">{exams.length}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Active Exams</p>
+            <p className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">{exams.length}</p>
           </div>
         </div>
-        <Link to="/results" className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500 flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="bg-green-100 p-4 rounded-full">
-            <BarChart2 className="text-green-600 w-8 h-8" />
+
+        <Link to="/results" className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-card border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-emerald-500 flex items-center gap-4 hover:shadow-elevated hover:-translate-y-0.5 transition-all group">
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 p-3.5 rounded-2xl text-emerald-600 dark:text-emerald-400">
+            <BarChart2 className="w-7 h-7" />
           </div>
           <div>
-            <p className="text-gray-500 text-sm">View All Results</p>
-            <p className="text-lg font-bold">Performance Analytics</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">View All Results</p>
+            <p className="text-base font-bold text-slate-900 dark:text-white mt-0.5 group-hover:text-primary-orange transition-colors">Analytics &amp; Scores</p>
           </div>
         </Link>
-        <Link to="/admin/proctoring" className="bg-gray-900 p-6 rounded-xl shadow-sm border-l-4 border-red-500 flex items-center gap-4 hover:shadow-xl transition-all group">
-          <div className="bg-red-500/10 p-4 rounded-full group-hover:bg-red-500/20 transition-colors">
-            <Monitor className="text-red-500 w-8 h-8" />
+
+        <Link to="/admin/proctoring" className="bg-slate-900 dark:bg-slate-800 p-6 rounded-2xl shadow-card border border-slate-800 border-l-4 border-l-rose-500 flex items-center gap-4 hover:shadow-elevated hover:-translate-y-0.5 transition-all group">
+          <div className="bg-rose-500/10 p-3.5 rounded-2xl text-rose-500 group-hover:bg-rose-500/20 transition-colors">
+            <Monitor className="w-7 h-7" />
           </div>
           <div>
-            <p className="text-gray-400 text-sm">Live Proctoring</p>
-            <p className="text-lg font-bold text-white uppercase italic tracking-tighter">Command Center</p>
+            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">AI Surveillance</p>
+            <p className="text-base font-black text-white italic tracking-tight">Proctor Command</p>
           </div>
         </Link>
       </div>
 
       {/* Live Monitoring Section */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-        <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <Monitor size={22} className="text-red-500 animate-pulse" /> Live Student Monitoring
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-card overflow-hidden border border-slate-200/80 dark:border-slate-800">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex justify-between items-center">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Monitor size={20} className="text-rose-500 animate-pulse" /> Live Student Monitoring
           </h2>
-          <span className="text-xs font-bold bg-red-100 text-red-600 px-2 py-1 rounded-full uppercase tracking-wider">
+          <span className="text-xs font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 px-3 py-1 rounded-full uppercase tracking-wider border border-rose-200/60 dark:border-rose-900/40">
             {Object.keys(monitoringFeeds).length} Students Online
           </span>
         </div>
@@ -233,42 +249,42 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Students List */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              <Users size={20} /> Manage Students
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-card overflow-hidden border border-slate-200/80 dark:border-slate-800">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Users size={18} className="text-primary-orange" /> Manage Students
             </h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 text-gray-500 text-sm uppercase">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50/80 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Student</th>
                   <th className="px-6 py-4">Login ID</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {students.map((student) => (
-                  <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden border border-gray-300">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200 dark:border-slate-700">
                           {student.profileImage ? (
                             <img src={`${API_BASE_URL}${student.profileImage}`} alt={student.name} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold">
+                            <div className="w-full h-full flex items-center justify-center text-primary-orange font-bold">
                               {student.name.charAt(0)}
                             </div>
                           )}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-800">{student.name}</p>
-                          <p className="text-xs text-gray-500">{student.email}</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{student.name}</p>
+                          <p className="text-xs text-slate-400">{student.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm text-primary-orange">{student.loginId}</td>
+                    <td className="px-6 py-4 font-mono text-xs font-bold text-primary-orange">{student.loginId}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button
@@ -277,15 +293,17 @@ const AdminDashboard = () => {
                             setFormData({ name: student.name, email: student.email, loginId: student.loginId, password: '' });
                             setShowStudentModal(true);
                           }}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl transition-colors"
+                          title="Edit Student"
                         >
-                          <Edit size={18} />
+                          <Edit size={16} />
                         </button>
                         <button
                           onClick={() => deleteStudent(student.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors"
+                          title="Delete Student"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -297,40 +315,41 @@ const AdminDashboard = () => {
         </div>
 
         {/* Exams List */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              <BookOpen size={20} /> Manage Exams
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-card overflow-hidden border border-slate-200/80 dark:border-slate-800">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <BookOpen size={18} className="text-amber-500" /> Manage Exams
             </h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 text-gray-500 text-sm uppercase">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50/80 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Exam Title</th>
                   <th className="px-6 py-4">Duration</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {exams.map((exam) => (
-                  <tr key={exam.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-gray-800">{exam.title}</td>
-                    <td className="px-6 py-4 text-gray-600">{exam.duration} mins</td>
+                  <tr key={exam.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{exam.title}</td>
+                    <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs font-semibold">{exam.duration} mins</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <Link
                           to={`/admin/exam/${exam.id}/questions`}
-                          className="p-2 text-primary-orange hover:bg-orange-50 rounded-lg transition-colors"
+                          className="p-2 text-primary-orange hover:bg-orange-50 dark:hover:bg-orange-950/40 rounded-xl transition-colors"
                           title="Manage Questions"
                         >
-                          <Plus size={18} />
+                          <Plus size={16} />
                         </Link>
                         <button
                           onClick={() => deleteExam(exam.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors"
+                          title="Delete Exam"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -343,154 +362,143 @@ const AdminDashboard = () => {
       </div>
 
       {/* Student Modal */}
-      {showStudentModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">
-              {editingStudent ? 'Edit Student' : 'Add New Student'}
-            </h2>
-            <form onSubmit={handleStudentSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+      <Modal
+        isOpen={showStudentModal}
+        onClose={() => setShowStudentModal(false)}
+        title={editingStudent ? 'Edit Student' : 'Add New Student'}
+        description="Provide student details and optional biometric face reference."
+        maxWidth="md"
+      >
+        <form onSubmit={handleStudentSubmit} className="space-y-4">
+          <Input
+            label="Full Name"
+            type="text"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="John Doe"
+          />
+          <Input
+            label="Email"
+            type="email"
+            required
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="john@example.com"
+          />
+          <Input
+            label="Login ID"
+            type="text"
+            required
+            value={formData.loginId}
+            onChange={(e) => setFormData({ ...formData, loginId: e.target.value })}
+            placeholder="STU-001"
+            className="font-mono text-primary-orange"
+          />
+          <Input
+            label={`Password ${editingStudent ? '(Leave blank to keep current)' : ''}`}
+            type="password"
+            required={!editingStudent}
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            placeholder="••••••••"
+          />
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Profile Image</label>
+            <div className="flex items-center gap-4">
+              <label className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-slate-300 dark:border-slate-700 p-3 rounded-xl hover:border-primary-orange cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-800/50">
+                <Camera size={20} className="text-slate-400" />
+                <span className="text-sm text-slate-600 dark:text-slate-300">Choose file</span>
                 <input
-                  type="text"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-orange outline-none"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => setProfileImage(e.target.files?.[0] || null)}
+                  accept="image/*"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-orange outline-none"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Login ID</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-orange outline-none font-mono text-primary-orange"
-                  value={formData.loginId}
-                  onChange={(e) => setFormData({ ...formData, loginId: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password {editingStudent && <span className="text-xs text-gray-400">(Leave blank to keep current)</span>}
-                </label>
-                <input
-                  type="password"
-                  required={!editingStudent}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-orange outline-none"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Profile Image</label>
-                <div className="flex items-center gap-4">
-                  <label className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 p-3 rounded-lg hover:border-primary-orange cursor-pointer transition-colors">
-                    <Camera size={20} className="text-gray-400" />
-                    <span className="text-sm text-gray-500">Choose file</span>
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={(e) => setProfileImage(e.target.files?.[0] || null)}
-                      accept="image/*"
-                    />
-                  </label>
-                  {profileImage && <div className="text-xs text-green-600 font-semibold truncate max-w-[100px]">{profileImage.name}</div>}
-                </div>
-              </div>
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowStudentModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-primary-orange text-white rounded-lg hover:bg-orange-600 transition-colors font-semibold"
-                >
-                  {editingStudent ? 'Update' : 'Create'} Student
-                </button>
-              </div>
-            </form>
+              </label>
+              {profileImage && <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold truncate max-w-[120px]">{profileImage.name}</div>}
+            </div>
           </div>
-        </div>
-      )}
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowStudentModal(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              className="flex-1"
+            >
+              {editingStudent ? 'Update' : 'Create'} Student
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Admin Profile Modal */}
-      {showProfileModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8">
-            <div className="flex items-center gap-3 mb-6">
-                <div className="bg-gray-100 p-2 rounded-lg text-gray-800">
-                    <Lock size={24} />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-800">Admin Security</h2>
-            </div>
-            <form onSubmit={handleProfileUpdate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Admin Display Name</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 outline-none"
-                  value={profileFormData.name}
-                  onChange={(e) => setProfileFormData({ ...profileFormData, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Admin Login ID</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 outline-none font-mono"
-                  value={profileFormData.loginId}
-                  onChange={(e) => setProfileFormData({ ...profileFormData, loginId: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">New Password <span className="text-xs text-gray-400">(Leave blank to keep current)</span></label>
-                <input
-                  type="password"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 outline-none"
-                  value={profileFormData.password}
-                  onChange={(e) => setProfileFormData({ ...profileFormData, password: e.target.value })}
-                  placeholder="••••••••"
-                />
-              </div>
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-4">
-                  <p className="text-xs text-yellow-700">Changing your Login ID or Password will require a session refresh. For security, you will be automatically re-authenticated.</p>
-              </div>
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowProfileModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-black transition-colors font-semibold"
-                >
-                  Update Credentials
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        title={
+          <div className="flex items-center gap-2">
+            <Lock size={20} className="text-primary-orange" />
+            <span>Admin Security</span>
           </div>
-        </div>
-      )}
+        }
+        description="Update your administrative credentials."
+        maxWidth="md"
+      >
+        <form onSubmit={handleProfileUpdate} className="space-y-4">
+          <Input
+            label="Admin Display Name"
+            type="text"
+            required
+            value={profileFormData.name}
+            onChange={(e) => setProfileFormData({ ...profileFormData, name: e.target.value })}
+          />
+          <Input
+            label="Admin Login ID"
+            type="text"
+            required
+            value={profileFormData.loginId}
+            onChange={(e) => setProfileFormData({ ...profileFormData, loginId: e.target.value })}
+            className="font-mono"
+          />
+          <Input
+            label="New Password (Leave blank to keep current)"
+            type="password"
+            value={profileFormData.password}
+            onChange={(e) => setProfileFormData({ ...profileFormData, password: e.target.value })}
+            placeholder="••••••••"
+          />
+          <div className="bg-amber-50 dark:bg-amber-950/40 border-l-4 border-amber-500 p-3 rounded-r-xl">
+            <p className="text-xs text-amber-800 dark:text-amber-200">
+              Changing your Login ID or Password will require a session refresh. For security, you will be automatically re-authenticated.
+            </p>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowProfileModal(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="secondary"
+              className="flex-1"
+            >
+              Update Credentials
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

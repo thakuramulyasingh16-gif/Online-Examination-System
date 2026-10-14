@@ -4,13 +4,14 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 import { Timer, Camera, AlertTriangle, XCircle, ShieldAlert } from 'lucide-react';
-import logo from '../assets/logo.png';
 import { API_BASE_URL } from '../config';
+import { useToast } from '../context/ToastContext';
 
 const ExamPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [exam, setExam] = useState<any>(null);
@@ -48,7 +49,7 @@ const ExamPage = () => {
       
       // Check if already completed
       if (data.Results && data.Results.length > 0) {
-        alert('You have already completed this examination. Access denied.');
+        toast.warning('You have already completed this examination. Access denied.', 'Already Completed');
         navigate('/');
         return;
       }
@@ -69,7 +70,7 @@ const ExamPage = () => {
 
     } catch (error) {
       console.error('Error fetching exam:', error);
-      alert('Error fetching exam');
+      toast.error('Error fetching examination data', 'Error');
       navigate('/');
     }
   };
@@ -136,12 +137,12 @@ const ExamPage = () => {
       if (status === 'terminated') {
         setIsTerminated(true);
       } else {
-        alert('Exam submitted successfully!');
+        toast.success('Exam submitted successfully!', 'Submitted');
         navigate('/results');
       }
     } catch (error) {
       console.error('Error submitting exam:', error);
-      alert('Error submitting exam');
+      toast.error('Error submitting exam. Please check your connection.', 'Submission Error');
     }
   };
 
@@ -295,7 +296,7 @@ const ExamPage = () => {
       <div className="sticky top-0 bg-white/80 backdrop-blur-md shadow-sm z-40 p-4 border-b border-gray-100">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-6">
-            <img src={logo} alt="College Logo" className="h-12 w-auto object-contain" />
+            <img src="/logo.jpg" alt="City College Logo" className="h-10 w-10 rounded-xl shadow-sm object-cover border border-orange-200/50" />
             <h1 className="text-2xl font-black text-gray-900 tracking-tighter italic uppercase">{exam?.title}</h1>
             <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-black tracking-widest ${timeLeft < 300 ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-100 text-gray-800 shadow-inner'}`}>
               <Timer size={18} /> {formatTime(timeLeft)}
