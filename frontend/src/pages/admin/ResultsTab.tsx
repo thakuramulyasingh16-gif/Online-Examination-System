@@ -7,7 +7,6 @@ import {
   Filter,
   FileSpreadsheet,
   FileText,
-  Calendar,
   CheckCircle2,
   XCircle,
   HelpCircle,
@@ -17,7 +16,6 @@ import {
   AlertTriangle,
   ArrowUpDown,
   BookOpen,
-  User,
   Info,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
@@ -75,7 +73,7 @@ export const ResultsTab: React.FC<ResultsTabProps> = ({
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'score_high' | 'score_low'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const pageSize = 10;
 
   // Detailed Answer Sheet Modal State
   const [showAnswerSheetModal, setShowAnswerSheetModal] = useState(false);
@@ -309,6 +307,24 @@ export const ResultsTab: React.FC<ResultsTabProps> = ({
               <option value="passed">Passed Candidates</option>
               <option value="failed">Failed Candidates</option>
               <option value="terminated">Terminated Sessions</option>
+            </select>
+          </div>
+
+          {/* Sort By Dropdown */}
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+            <ArrowUpDown size={15} className="text-slate-400" />
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value as any);
+                setCurrentPage(1);
+              }}
+              className="bg-transparent font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="score_high">Score: High to Low</option>
+              <option value="score_low">Score: Low to High</option>
             </select>
           </div>
 

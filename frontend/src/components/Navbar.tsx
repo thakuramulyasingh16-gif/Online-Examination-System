@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, User, Sun, Moon, Menu, X, Shield, LayoutDashboard, Award, BookOpen } from 'lucide-react';
+import { LogOut, User, Sun, Moon, Menu, X, LayoutDashboard, Award, BookOpen } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 const Navbar = () => {
@@ -89,19 +89,6 @@ const Navbar = () => {
                 <User size={16} />
                 Profile
               </Link>
-              {user.role === 'admin' && (
-                <Link
-                  to="/admin/proctoring"
-                  className={`px-3 py-2 rounded-xl transition-all duration-150 flex items-center gap-2 ${
-                    isActive('/admin/proctoring')
-                      ? 'text-primary-orange bg-orange-50 dark:bg-orange-950/40 font-bold'
-                      : 'hover:text-primary-orange hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                  }`}
-                >
-                  <Shield size={16} />
-                  Live Proctoring
-                </Link>
-              )}
             </div>
 
             <div className="hidden md:flex items-center gap-4">
@@ -122,7 +109,7 @@ const Navbar = () => {
                 <div className="flex flex-col items-end">
                   <span className="text-xs font-bold text-slate-800 dark:text-slate-100">{user.name}</span>
                   <span className="text-[10px] uppercase tracking-wider font-extrabold text-primary-orange flex items-center gap-1">
-                    {user.role === 'admin' ? <Shield size={10} /> : <User size={10} />} {user.role}
+                    <User size={10} /> {user.role}
                   </span>
                 </div>
 
@@ -276,20 +263,6 @@ const Navbar = () => {
                   <User size={18} />
                   Profile
                 </Link>
-                {user.role === 'admin' && (
-                  <Link
-                    to="/admin/proctoring"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
-                      isActive('/admin/proctoring')
-                        ? 'bg-orange-50 dark:bg-orange-950/40 text-primary-orange font-bold'
-                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <Shield size={18} />
-                    Live Proctoring
-                  </Link>
-                )}
               </div>
             </div>
 

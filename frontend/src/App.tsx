@@ -9,9 +9,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import ExamPage from './pages/ExamPage';
 import ResultPage from './pages/ResultPage';
-import CreateExam from './pages/CreateExam';
 import ManageQuestions from './pages/ManageQuestions';
-import ProctoringDashboard from './pages/ProctoringDashboard';
 import MyExams from './pages/MyExams';
 import Profile from './pages/Profile';
 

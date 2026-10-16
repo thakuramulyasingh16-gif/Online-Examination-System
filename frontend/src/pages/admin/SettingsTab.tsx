@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import {
-  Settings,
   Building,
-  Upload,
   Lock,
-  Award,
-  ShieldCheck,
-  Check,
   Camera,
   Eye,
   EyeOff,
-  AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { API_BASE_URL } from '../../config';

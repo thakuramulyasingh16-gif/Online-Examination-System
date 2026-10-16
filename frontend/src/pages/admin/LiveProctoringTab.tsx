@@ -4,16 +4,11 @@ import {
   Monitor,
   Camera,
   AlertTriangle,
-  Radio,
   Send,
   XCircle,
   Clock,
   Activity,
   ShieldAlert,
-  User,
-  X,
-  MessageSquare,
-  Sparkles,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { API_BASE_URL } from '../../config';

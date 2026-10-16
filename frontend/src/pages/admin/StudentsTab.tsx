@@ -14,7 +14,6 @@ import {
   Copy,
   Download,
   ArrowUpDown,
-  Filter,
   Camera,
   Eye,
   EyeOff,

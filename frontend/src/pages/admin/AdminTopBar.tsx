@@ -5,7 +5,6 @@ import {
   Moon,
   RefreshCw,
   Plus,
-  ShieldCheck,
   Radio,
   LogOut,
 } from 'lucide-react';

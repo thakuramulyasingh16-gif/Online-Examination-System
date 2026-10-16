@@ -14,8 +14,6 @@ import {
   AlertTriangle,
   Download,
   Info,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { exportToCSV } from '../../utils/exportUtils';

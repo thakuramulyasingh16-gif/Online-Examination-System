@@ -11,14 +11,8 @@ import {
   Calendar,
   Shuffle,
   HelpCircle,
-  Radio,
-  CheckCircle,
-  XCircle,
   AlertTriangle,
   X,
-  FileText,
-  Percent,
-  Layers,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import type { AdminTab } from './AdminSidebar';
